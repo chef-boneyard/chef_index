@@ -51,7 +51,7 @@ amqp_child_spec() ->
             error_logger:info_msg("RabbitMQ config disabled. Indexing for search is disabled.~n"),
             [];
         false ->
-            Host = envy:get(chef_index, rabbitmq_host, string),
+            Host = parse_host(envy:get(chef_index, rabbitmq_host, string)),
             Port = envy:get(chef_index,rabbitmq_port, non_neg_integer),
             User = envy:get(chef_index,rabbitmq_user, binary),
             Password = envy:get(chef_index,rabbitmq_password, binary),
@@ -65,3 +65,27 @@ amqp_child_spec() ->
                          permanent, 5000, worker, dynamic},
             [IndexDesc]
     end.
+
+parse_host(Host) ->
+    case envy:get(chef_index, enable_ipv6, false, boolean) of
+        true ->
+            %% With enable_ipv6, we try the Host as an ipv6 host first and fallback to ipv4
+            %% if we get a lookup error.
+            handle_get_addr6(inet:getaddr(Host, inet6), Host);
+        false ->
+            handle_get_addr4(inet:getaddr(Host, inet), Host)
+    end.
+
+%% Return ipv6 address, but fallback to ipv4 parse/lookup on nxdomain error.
+handle_get_addr6({error, nxdomain}, Host) ->
+    handle_get_addr4(inet:getaddr(Host, inet), Host);
+handle_get_addr6({ok, IP6}, _) ->
+    IP6;
+handle_get_addr6(Error, Host) ->
+    erlang:error({bad_host, {Host, Error}}).
+
+%% Return ipv4 address or raise error.
+handle_get_addr4({ok, IP4}, _) ->
+    IP4;
+handle_get_addr4(Error, Host) ->
+    erlang:error({bad_host, {Host, Error}}).
