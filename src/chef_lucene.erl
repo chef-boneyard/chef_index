@@ -129,9 +129,7 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'group'(input(), index()) -> parse_result().
 'group'(Input, Index) ->
-  p(Input, Index, 'group', fun(I,D) -> (p_seq([p_string(<<"(">>), p_label('group', fun 'query'/2), p_string(<<")">>)]))(I,D) end, fun(Node, _Idx) ->
-    [<<"(">>, ?gv(group, Node), <<")">>]
- end).
+  p(Input, Index, 'group', fun(I,D) -> (p_seq([p_string(<<"(">>), fun 'query'/2, p_string(<<")">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 -spec 'operation'(input(), index()) -> parse_result().
 'operation'(Input, Index) ->
