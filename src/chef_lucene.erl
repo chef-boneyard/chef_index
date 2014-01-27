@@ -42,6 +42,29 @@
 -define(not_op, 'NOT').
 -define(not_bang_op, '!').
 
+-spec convert_range_expression(binary(), binary(), binary(), binary(), binary()) -> iolist().
+convert_range_expression(FieldName, _, <<"*">>, <<"*">>, _) ->
+    [<<"content:">>, FieldName, <<"__=__*">>];
+
+convert_range_expression(FieldName, Open, Start, <<"*">>, Close) ->
+    [<<"content:">>,
+     Open, FieldName, <<"__=__">>, Start,
+     <<" TO ">>,
+     FieldName, <<"__=__\\ufff0">>, Close];
+
+convert_range_expression(FieldName, Open, <<"*">>, End, Close) ->
+    [<<"content:">>,
+     Open, FieldName, <<"__=__">>,
+     <<" TO ">>,
+     FieldName, <<"__=__">>, End, Close];
+
+convert_range_expression(FieldName, Open, Start, End, Close) ->
+    [<<"content:">>,
+     Open, FieldName, <<"__=__">>, Start,
+     <<" TO ">>,
+     FieldName, <<"__=__">>, End, Close].
+
+
 -spec file(file:name()) -> any().
 file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.
 
@@ -89,34 +112,8 @@ parse(Input) when is_binary(Input) ->
 -spec 'field_range'(input(), index()) -> parse_result().
 'field_range'(Input, Index) ->
   p(Input, Index, 'field_range', fun(I,D) -> (p_seq([fun 'field_name'/2, p_string(<<":">>), p_choose([p_seq([p_string(<<"[">>), fun 'range_entry'/2, p_string(<<"\sTO\s">>), fun 'range_entry'/2, p_string(<<"]">>)]), p_seq([p_string(<<"{">>), fun 'range_entry'/2, p_string(<<"\sTO\s">>), fun 'range_entry'/2, p_string(<<"}">>)])])]))(I,D) end, fun(Node, _Idx) ->
-    % FIXME: this needs a cleanup
-    case Node of
-        [FieldName, <<":">>, [<<"[">>, <<"*">>, <<" TO ">>, <<"*">>, <<"]">>]] ->
-            [<<"content:">>, FieldName, <<"__=__*">>];
-        [FieldName, <<":">>, [<<"{">>, <<"*">>, <<" TO ">>, <<"*">>, <<"}">>]] ->
-            [<<"content:">>, FieldName, <<"__=__*">>];
-
-        [FieldName, <<":">>, [<<"[">>, S, <<" TO ">>, <<"*">>, <<"]">>]] ->
-            [<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__\\ufff0]">>];
-        [FieldName, <<":">>, [<<"{">>, S, <<" TO ">>, <<"*">>, <<"}">>]] ->
-            [<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__\\ufff0}">>];
-
-        [FieldName, <<":">>, [<<"[">>, <<"*">>, <<" TO ">>, E, <<"]">>]] ->
-            [<<"content:[">>, FieldName, <<"__=__">>, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"]">>];
-        [FieldName, <<":">>, [<<"{">>, <<"*">>, <<" TO ">>, E, <<"}">>]] ->
-            [<<"content:{">>, FieldName, <<"__=__">>, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"}">>];
-        
-        [FieldName, <<":">>, [<<"[">>, S, <<" TO ">>, E, <<"]">>]] ->
-            [<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"]">>];
-        [FieldName, <<":">>, [<<"{">>, S, <<" TO ">>, E, <<"}">>]] ->
-            [<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"}">>]
-    end
+    [ FieldName, _, [Open, Start, _, End, Close] ] = Node,
+    convert_range_expression(FieldName, Open, Start, End, Close)
  end).
 
 -spec 'field_name'(input(), index()) -> parse_result().
@@ -215,7 +212,7 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'special_char'(input(), index()) -> parse_result().
 'special_char'(Input, Index) ->
-  p(Input, Index, 'special_char', fun(I,D) -> (p_choose([p_string(<<"[">>), p_string(<<"]">>), p_string(<<"\\">>), p_charclass(<<"[!(){}^\"~*?:]">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
+  p(Input, Index, 'special_char', fun(I,D) -> (p_choose([p_string(<<"[">>), p_string(<<"]">>), p_string(<<"\\">>), p_string(<<"\"">>), p_charclass(<<"[!(){}^~*?:]">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 
 

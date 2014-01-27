@@ -22,34 +22,8 @@ field_phrase <- name:field_name ':' '"' str:(term (space term)*) '"' %{
 
 field_range <- field_name ":" (("[" range_entry " TO " range_entry "]") /
                                ("{" range_entry " TO " range_entry "}")) %{
-    % FIXME: this needs a cleanup
-    case Node of
-        [FieldName, <<":">>, [<<"[">>, <<"*">>, <<" TO ">>, <<"*">>, <<"]">>]] ->
-            [<<"content:">>, FieldName, <<"__=__*">>];
-        [FieldName, <<":">>, [<<"{">>, <<"*">>, <<" TO ">>, <<"*">>, <<"}">>]] ->
-            [<<"content:">>, FieldName, <<"__=__*">>];
-
-        [FieldName, <<":">>, [<<"[">>, S, <<" TO ">>, <<"*">>, <<"]">>]] ->
-            [<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__\\ufff0]">>];
-        [FieldName, <<":">>, [<<"{">>, S, <<" TO ">>, <<"*">>, <<"}">>]] ->
-            [<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__\\ufff0}">>];
-
-        [FieldName, <<":">>, [<<"[">>, <<"*">>, <<" TO ">>, E, <<"]">>]] ->
-            [<<"content:[">>, FieldName, <<"__=__">>, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"]">>];
-        [FieldName, <<":">>, [<<"{">>, <<"*">>, <<" TO ">>, E, <<"}">>]] ->
-            [<<"content:{">>, FieldName, <<"__=__">>, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"}">>];
-        
-        [FieldName, <<":">>, [<<"[">>, S, <<" TO ">>, E, <<"]">>]] ->
-            [<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"]">>];
-        [FieldName, <<":">>, [<<"{">>, S, <<" TO ">>, E, <<"}">>]] ->
-            [<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"}">>]
-    end
+    [ FieldName, _, [Open, Start, _, End, Close] ] = Node,
+    convert_range_expression(FieldName, Open, Start, End, Close)
 %};
 
 field_name <- !keyword valid_letter+ ~;
@@ -111,7 +85,7 @@ start_letter <- [a-zA-Z0-9_.*/] / '\\' special_char ~;
 
 space <- [ \t]+ ~;
 
-special_char <- '[' / ']' / '\\' / [!(){}^"~*?:] ~;
+special_char <- '[' / ']' / '\\' / '"' / [!(){}^~*?:] ~;
 
 %{
 %% @author Seth Falcon <seth@opscode.com>
@@ -142,4 +116,27 @@ special_char <- '[' / ']' / '\\' / [!(){}^"~*?:] ~;
 -define(and_op2, '&&').
 -define(not_op, 'NOT').
 -define(not_bang_op, '!').
+
+-spec convert_range_expression(binary(), binary(), binary(), binary(), binary()) -> iolist().
+convert_range_expression(FieldName, _, <<"*">>, <<"*">>, _) ->
+    [<<"content:">>, FieldName, <<"__=__*">>];
+
+convert_range_expression(FieldName, Open, Start, <<"*">>, Close) ->
+    [<<"content:">>,
+     Open, FieldName, <<"__=__">>, Start,
+     <<" TO ">>,
+     FieldName, <<"__=__\\ufff0">>, Close];
+
+convert_range_expression(FieldName, Open, <<"*">>, End, Close) ->
+    [<<"content:">>,
+     Open, FieldName, <<"__=__">>,
+     <<" TO ">>,
+     FieldName, <<"__=__">>, End, Close];
+
+convert_range_expression(FieldName, Open, Start, End, Close) ->
+    [<<"content:">>,
+     Open, FieldName, <<"__=__">>, Start,
+     <<" TO ">>,
+     FieldName, <<"__=__">>, End, Close].
+
 %}
