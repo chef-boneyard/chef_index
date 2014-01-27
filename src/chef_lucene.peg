@@ -9,17 +9,15 @@ star_star <- "*:*" ~;
 
 expression <- operation / group / field_phrase / field / field_range / term / string ~;
 
-term <- keyword valid_letter+ / !keyword valid_letter+ %{
-    ?i2b(Node)
-%};
+term <- keyword valid_letter+ / !keyword valid_letter+ ~;
 
 field <- name:field_name ":" arg:(fuzzy_op / term / group / string) %{
-    ?i2b([<<"content:">>, ?gv(name, Node), <<"__=__">>, ?gv(arg, Node)])
+    [<<"content:">>, ?gv(name, Node), <<"__=__">>, ?gv(arg, Node)]
 %};
 
 field_phrase <- name:field_name ':' '"' str:(term (space term)*) '"' %{
     P = ?gv(str, Node),
-    ?i2b([<<"content:\"">>, ?gv(name, Node), <<"__=__">>, P, <<"\"">>])
+    [<<"content:\"">>, ?gv(name, Node), <<"__=__">>, P, <<"\"">>]
 %};
 
 field_range <- field_name ":" (("[" range_entry " TO " range_entry "]") /
@@ -27,36 +25,34 @@ field_range <- field_name ":" (("[" range_entry " TO " range_entry "]") /
     % FIXME: this needs a cleanup
     case Node of
         [FieldName, <<":">>, [<<"[">>, <<"*">>, <<" TO ">>, <<"*">>, <<"]">>]] ->
-            ?i2b([<<"content:">>, FieldName, <<"__=__*">>]);
+            [<<"content:">>, FieldName, <<"__=__*">>];
         [FieldName, <<":">>, [<<"{">>, <<"*">>, <<" TO ">>, <<"*">>, <<"}">>]] ->
-            ?i2b([<<"content:">>, FieldName, <<"__=__*">>]);
+            [<<"content:">>, FieldName, <<"__=__*">>];
 
         [FieldName, <<":">>, [<<"[">>, S, <<" TO ">>, <<"*">>, <<"]">>]] ->
-            ?i2b([<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__\\ufff0]">>]);
+            [<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
+                  FieldName, <<"__=__\\ufff0]">>];
         [FieldName, <<":">>, [<<"{">>, S, <<" TO ">>, <<"*">>, <<"}">>]] ->
-            ?i2b([<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__\\ufff0}">>]);
+            [<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
+                  FieldName, <<"__=__\\ufff0}">>];
 
         [FieldName, <<":">>, [<<"[">>, <<"*">>, <<" TO ">>, E, <<"]">>]] ->
-            ?i2b([<<"content:[">>, FieldName, <<"__=__">>, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"]">>]);
+            [<<"content:[">>, FieldName, <<"__=__">>, <<" TO ">>,
+                  FieldName, <<"__=__">>, E, <<"]">>];
         [FieldName, <<":">>, [<<"{">>, <<"*">>, <<" TO ">>, E, <<"}">>]] ->
-            ?i2b([<<"content:{">>, FieldName, <<"__=__">>, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"}">>]);
+            [<<"content:{">>, FieldName, <<"__=__">>, <<" TO ">>,
+                  FieldName, <<"__=__">>, E, <<"}">>];
         
         [FieldName, <<":">>, [<<"[">>, S, <<" TO ">>, E, <<"]">>]] ->
-            ?i2b([<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"]">>]);
+            [<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
+                  FieldName, <<"__=__">>, E, <<"]">>];
         [FieldName, <<":">>, [<<"{">>, S, <<" TO ">>, E, <<"}">>]] ->
-            ?i2b([<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"}">>])
+            [<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
+                  FieldName, <<"__=__">>, E, <<"}">>]
     end
 %};
 
-field_name <- !keyword valid_letter+ %{
-    ?i2b(Node)
-%};
+field_name <- !keyword valid_letter+ ~;
 
 range_entry <- "*" / valid_letter+ ~;
 
@@ -67,7 +63,7 @@ group <- '(' group:query ')' %{
 operation <- binary_op / unary_op / fuzzy_op / boost_op ~;
 
 binary_op <- lhs:(group / field_phrase / field  / field_range / term) space? op:bool_op space? rhs:query %{
-    ?i2b([?gv(lhs, Node), <<" ">>, ?gv(op, Node), <<" ">>, ?gv(rhs, Node)])
+    [?gv(lhs, Node), <<" ">>, ?gv(op, Node), <<" ">>, ?gv(rhs, Node)]
 %};
 
 bool_op <- 'AND' / '&&' / 'OR' / '||' ~;
@@ -84,15 +80,15 @@ not_op <- ((op:'NOT' space) / (op:'!' space?)) arg:(group / field / field_range 
 %};
 
 required_op <- !valid_letter op:'+' arg:(term / string) %{
-    ?i2b([?gv(op, Node), ?gv(arg, Node)])
+    [?gv(op, Node), ?gv(arg, Node)]
 %};
 
 prohibited_op <- !valid_letter op:'-' arg:(field / field_range / term / string) %{
-    ?i2b([?gv(op, Node), ?gv(arg, Node)])
+    [?gv(op, Node), ?gv(arg, Node)]
 %};
 
 boost_op <- arg:(term / string) '^' param:fuzzy_param %{
-    ?i2b([?gv(arg, Node), <<"^">>, ?gv(param, Node)])
+    [?gv(arg, Node), <<"^">>, ?gv(param, Node)]
 %};
 
 fuzzy_op <- arg:(term / string) '~' param:fuzzy_param? %{
@@ -105,7 +101,7 @@ fuzzy_op <- arg:(term / string) '~' param:fuzzy_param? %{
 fuzzy_param <- [0-9]+ ('.' [0-9])? ~;
 
 string <- '"' str:(term (space term)*) '"' %{
-    ?i2b([<<"\"">>, ?gv(str, Node), <<"\"">>])
+    [<<"\"">>, ?gv(str, Node), <<"\"">>]
 %};
 
 keyword <- "AND" / "OR" / "NOT" ~;

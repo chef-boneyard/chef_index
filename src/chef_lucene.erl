@@ -71,21 +71,19 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'term'(input(), index()) -> parse_result().
 'term'(Input, Index) ->
-  p(Input, Index, 'term', fun(I,D) -> (p_choose([p_seq([fun 'keyword'/2, p_one_or_more(fun 'valid_letter'/2)]), p_seq([p_not(fun 'keyword'/2), p_one_or_more(fun 'valid_letter'/2)])]))(I,D) end, fun(Node, _Idx) ->
-    ?i2b(Node)
- end).
+  p(Input, Index, 'term', fun(I,D) -> (p_choose([p_seq([fun 'keyword'/2, p_one_or_more(fun 'valid_letter'/2)]), p_seq([p_not(fun 'keyword'/2), p_one_or_more(fun 'valid_letter'/2)])]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 -spec 'field'(input(), index()) -> parse_result().
 'field'(Input, Index) ->
   p(Input, Index, 'field', fun(I,D) -> (p_seq([p_label('name', fun 'field_name'/2), p_string(<<":">>), p_label('arg', p_choose([fun 'fuzzy_op'/2, fun 'term'/2, fun 'group'/2, fun 'string'/2]))]))(I,D) end, fun(Node, _Idx) ->
-    ?i2b([<<"content:">>, ?gv(name, Node), <<"__=__">>, ?gv(arg, Node)])
+    [<<"content:">>, ?gv(name, Node), <<"__=__">>, ?gv(arg, Node)]
  end).
 
 -spec 'field_phrase'(input(), index()) -> parse_result().
 'field_phrase'(Input, Index) ->
   p(Input, Index, 'field_phrase', fun(I,D) -> (p_seq([p_label('name', fun 'field_name'/2), p_string(<<":">>), p_string(<<"\"">>), p_label('str', p_seq([fun 'term'/2, p_zero_or_more(p_seq([fun 'space'/2, fun 'term'/2]))])), p_string(<<"\"">>)]))(I,D) end, fun(Node, _Idx) ->
     P = ?gv(str, Node),
-    ?i2b([<<"content:\"">>, ?gv(name, Node), <<"__=__">>, P, <<"\"">>])
+    [<<"content:\"">>, ?gv(name, Node), <<"__=__">>, P, <<"\"">>]
  end).
 
 -spec 'field_range'(input(), index()) -> parse_result().
@@ -94,38 +92,36 @@ parse(Input) when is_binary(Input) ->
     % FIXME: this needs a cleanup
     case Node of
         [FieldName, <<":">>, [<<"[">>, <<"*">>, <<" TO ">>, <<"*">>, <<"]">>]] ->
-            ?i2b([<<"content:">>, FieldName, <<"__=__*">>]);
+            [<<"content:">>, FieldName, <<"__=__*">>];
         [FieldName, <<":">>, [<<"{">>, <<"*">>, <<" TO ">>, <<"*">>, <<"}">>]] ->
-            ?i2b([<<"content:">>, FieldName, <<"__=__*">>]);
+            [<<"content:">>, FieldName, <<"__=__*">>];
 
         [FieldName, <<":">>, [<<"[">>, S, <<" TO ">>, <<"*">>, <<"]">>]] ->
-            ?i2b([<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__\\ufff0]">>]);
+            [<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
+                  FieldName, <<"__=__\\ufff0]">>];
         [FieldName, <<":">>, [<<"{">>, S, <<" TO ">>, <<"*">>, <<"}">>]] ->
-            ?i2b([<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__\\ufff0}">>]);
+            [<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
+                  FieldName, <<"__=__\\ufff0}">>];
 
         [FieldName, <<":">>, [<<"[">>, <<"*">>, <<" TO ">>, E, <<"]">>]] ->
-            ?i2b([<<"content:[">>, FieldName, <<"__=__">>, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"]">>]);
+            [<<"content:[">>, FieldName, <<"__=__">>, <<" TO ">>,
+                  FieldName, <<"__=__">>, E, <<"]">>];
         [FieldName, <<":">>, [<<"{">>, <<"*">>, <<" TO ">>, E, <<"}">>]] ->
-            ?i2b([<<"content:{">>, FieldName, <<"__=__">>, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"}">>]);
+            [<<"content:{">>, FieldName, <<"__=__">>, <<" TO ">>,
+                  FieldName, <<"__=__">>, E, <<"}">>];
         
         [FieldName, <<":">>, [<<"[">>, S, <<" TO ">>, E, <<"]">>]] ->
-            ?i2b([<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"]">>]);
+            [<<"content:[">>, FieldName, <<"__=__">>, S, <<" TO ">>,
+                  FieldName, <<"__=__">>, E, <<"]">>];
         [FieldName, <<":">>, [<<"{">>, S, <<" TO ">>, E, <<"}">>]] ->
-            ?i2b([<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
-                  FieldName, <<"__=__">>, E, <<"}">>])
+            [<<"content:{">>, FieldName, <<"__=__">>, S, <<" TO ">>,
+                  FieldName, <<"__=__">>, E, <<"}">>]
     end
  end).
 
 -spec 'field_name'(input(), index()) -> parse_result().
 'field_name'(Input, Index) ->
-  p(Input, Index, 'field_name', fun(I,D) -> (p_seq([p_not(fun 'keyword'/2), p_one_or_more(fun 'valid_letter'/2)]))(I,D) end, fun(Node, _Idx) ->
-    ?i2b(Node)
- end).
+  p(Input, Index, 'field_name', fun(I,D) -> (p_seq([p_not(fun 'keyword'/2), p_one_or_more(fun 'valid_letter'/2)]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 -spec 'range_entry'(input(), index()) -> parse_result().
 'range_entry'(Input, Index) ->
@@ -144,7 +140,7 @@ parse(Input) when is_binary(Input) ->
 -spec 'binary_op'(input(), index()) -> parse_result().
 'binary_op'(Input, Index) ->
   p(Input, Index, 'binary_op', fun(I,D) -> (p_seq([p_label('lhs', p_choose([fun 'group'/2, fun 'field_phrase'/2, fun 'field'/2, fun 'field_range'/2, fun 'term'/2])), p_optional(fun 'space'/2), p_label('op', fun 'bool_op'/2), p_optional(fun 'space'/2), p_label('rhs', fun 'query'/2)]))(I,D) end, fun(Node, _Idx) ->
-    ?i2b([?gv(lhs, Node), <<" ">>, ?gv(op, Node), <<" ">>, ?gv(rhs, Node)])
+    [?gv(lhs, Node), <<" ">>, ?gv(op, Node), <<" ">>, ?gv(rhs, Node)]
  end).
 
 -spec 'bool_op'(input(), index()) -> parse_result().
@@ -169,19 +165,19 @@ parse(Input) when is_binary(Input) ->
 -spec 'required_op'(input(), index()) -> parse_result().
 'required_op'(Input, Index) ->
   p(Input, Index, 'required_op', fun(I,D) -> (p_seq([p_not(fun 'valid_letter'/2), p_label('op', p_string(<<"+">>)), p_label('arg', p_choose([fun 'term'/2, fun 'string'/2]))]))(I,D) end, fun(Node, _Idx) ->
-    ?i2b([?gv(op, Node), ?gv(arg, Node)])
+    [?gv(op, Node), ?gv(arg, Node)]
  end).
 
 -spec 'prohibited_op'(input(), index()) -> parse_result().
 'prohibited_op'(Input, Index) ->
   p(Input, Index, 'prohibited_op', fun(I,D) -> (p_seq([p_not(fun 'valid_letter'/2), p_label('op', p_string(<<"-">>)), p_label('arg', p_choose([fun 'field'/2, fun 'field_range'/2, fun 'term'/2, fun 'string'/2]))]))(I,D) end, fun(Node, _Idx) ->
-    ?i2b([?gv(op, Node), ?gv(arg, Node)])
+    [?gv(op, Node), ?gv(arg, Node)]
  end).
 
 -spec 'boost_op'(input(), index()) -> parse_result().
 'boost_op'(Input, Index) ->
   p(Input, Index, 'boost_op', fun(I,D) -> (p_seq([p_label('arg', p_choose([fun 'term'/2, fun 'string'/2])), p_string(<<"^">>), p_label('param', fun 'fuzzy_param'/2)]))(I,D) end, fun(Node, _Idx) ->
-    ?i2b([?gv(arg, Node), <<"^">>, ?gv(param, Node)])
+    [?gv(arg, Node), <<"^">>, ?gv(param, Node)]
  end).
 
 -spec 'fuzzy_op'(input(), index()) -> parse_result().
@@ -200,7 +196,7 @@ parse(Input) when is_binary(Input) ->
 -spec 'string'(input(), index()) -> parse_result().
 'string'(Input, Index) ->
   p(Input, Index, 'string', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('str', p_seq([fun 'term'/2, p_zero_or_more(p_seq([fun 'space'/2, fun 'term'/2]))])), p_string(<<"\"">>)]))(I,D) end, fun(Node, _Idx) ->
-    ?i2b([<<"\"">>, ?gv(str, Node), <<"\"">>])
+    [<<"\"">>, ?gv(str, Node), <<"\"">>]
  end).
 
 -spec 'keyword'(input(), index()) -> parse_result().
