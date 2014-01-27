@@ -42,39 +42,19 @@ bool_op <- 'AND' / '&&' / 'OR' / '||' ~;
 
 unary_op <- not_op / required_op / prohibited_op ~;
 
-not_op <- ((op:'NOT' space) / (op:'!' space?)) arg:(group / field / field_range / term / string) %{
-    Op = ?gv(op, hd(Node)),
-    Spc = case tl(hd(Node)) of
-              [] -> <<"">>;
-              [S] -> S
-          end,
-    [Op, Spc, ?gv(arg, tl(Node))]
-%};
+not_op <- ('NOT' space / '!' space?) (group / field / field_range / term / string) ~;
 
-required_op <- !valid_letter op:'+' arg:(term / string) %{
-    [?gv(op, Node), ?gv(arg, Node)]
-%};
+required_op <- !valid_letter '+' (term / string) ~;
 
-prohibited_op <- !valid_letter op:'-' arg:(field / field_range / term / string) %{
-    [?gv(op, Node), ?gv(arg, Node)]
-%};
+prohibited_op <- !valid_letter '-' (field / field_range / term / string) ~;
 
-boost_op <- arg:(term / string) '^' param:fuzzy_param %{
-    [?gv(arg, Node), <<"^">>, ?gv(param, Node)]
-%};
+boost_op <- (term / string) '^' fuzzy_param ~;
 
-fuzzy_op <- arg:(term / string) '~' param:fuzzy_param? %{
-    case ?gv(param, Node) of
-        [] -> [?gv(arg, Node), <<"~">>];
-        Param -> [?gv(arg, Node), <<"~">>, Param]
-    end
-%};
+fuzzy_op <- (term / string) '~' fuzzy_param? ~;
 
 fuzzy_param <- [0-9]+ ('.' [0-9])? ~;
 
-string <- '"' str:(term (space term)*) '"' %{
-    [<<"\"">>, ?gv(str, Node), <<"\"">>]
-%};
+string <- '"' (term (space term)*) '"' ~;
 
 keyword <- "AND" / "OR" / "NOT" ~;
 
