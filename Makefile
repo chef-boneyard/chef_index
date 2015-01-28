@@ -17,8 +17,6 @@
 # If you want to add dependencies to the default "all" target provided
 # by concrete, add them here (along with make rules to build them if needed)
 # ALL_HOOK = ...
-NEOTOMA=deps/neotoma/neotoma
-
 concrete_rules_file = $(wildcard concrete.mk)
 ifeq ($(concrete_rules_file),concrete.mk)
     include concrete.mk
@@ -27,10 +25,3 @@ else
 	@echo "ERROR: missing concrete.mk"
 	@echo "  run: concrete update"
 endif
-
-lucene: compile $(NEOTOMA)
-	@$(NEOTOMA) priv/lucene.peg -module chef_lucene -output src -transform_module lucene_txfm
-	@$(NEOTOMA) priv/lucene.peg -module lucene -output src -transform_module lucene_sexp
-
-$(NEOTOMA):
-	@(cd deps/neotoma; rebar escriptize)
