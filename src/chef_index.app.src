@@ -18,12 +18,11 @@
 {application, chef_index,
  [
   {description, "Chef search index tools"},
-  {vsn, git},
+  {vsn, {cmd,"cat ../../VERSION | awk '{print $0}'"}},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib,
-                  ejson,
                   gen_bunny,
                   ibrowse
                  ]},
