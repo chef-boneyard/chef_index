@@ -63,15 +63,16 @@ delete_search_db(OrgId) ->
         solr -> chef_solr:delete_search_db(OrgId)
     end.
 
--spec delete_search_db_by_type(OrgId :: binary(), Type :: atom()) -> ok.
+-spec delete_search_db_by_type(OrgId :: binary(),
+                               Type :: client | data_bag_item | environment | node | role) -> ok.
 delete_search_db_by_type(OrgId, Type) ->
     case search_provider() of
         elasticsearch -> chef_elasticsearch:delete_search_db_by_type(OrgId, Type);
         solr -> chef_solr:delete_search_db_by_type(OrgId, Type)
     end.
 
--spec query_from_params(binary()|string(),
-                        string() | binary() | undefined,
+-spec query_from_params(binary() | [byte()],
+                        undefined | nonempty_string(),
                         string(),
                         string()) -> #chef_solr_query{}.
 query_from_params(ObjType, QueryString, Start, Rows) ->
@@ -143,6 +144,6 @@ send_to_solr(QueueMode, Doc, ReqId) ->
                                                          send_to_solr(QueueMode, Doc)
                                                  end).
 send_to_solr(batch, Doc) ->
-    chef_index_batch:add_item(Doc);
+    ok;
 send_to_solr(inline, Doc) ->
     chef_index_expand:send_item(Doc).

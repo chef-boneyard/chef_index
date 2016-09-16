@@ -27,7 +27,7 @@ update(Body) ->
     chef_index_http:post("/_bulk", Body).
 
 -spec search(#chef_solr_query{}) ->
-                    {ok, non_neg_integer(), non_neg_integer(), [binary()]} |
+                    {ok, undefined, non_neg_integer(), [binary()]} |
                     {error, {solr_400, string()}} |
                     {error, {solr_500, string()}}.
 search(#chef_solr_query{} = Query) ->
@@ -126,7 +126,8 @@ query_string_query_ejson(QueryString) ->
 %% high number. While this does increase network traffic to/from Elasticsearch, it
 %% reduces the memory load. If network performance becomes a problem, we could
 %% increase the number of rows we return with each query.
--spec delete_search_db_by_type(OrgId :: binary(), Type :: atom()) -> ok.
+-spec delete_search_db_by_type(OrgId :: binary(),
+                               Type :: client | data_bag_item | environment | node | role) -> ok.
 delete_search_db_by_type(OrgId, Type)
   when Type == client orelse Type == data_bag_item orelse
        Type == environment orelse Type == node orelse
@@ -152,9 +153,10 @@ delete_search_db(OrgId) ->
     {ok, _, _, Ids} = search(Query),
     delete_ids(Ids).
 
+-spec delete_ids([binary()]) -> ok.
 delete_ids([]) ->
     ok = commit(),
     ok;
 delete_ids([Id | Ids]) ->
-    ok = chef_index_http:delete("/chef/object/" ++ Id, []),
+    ok = chef_index_http:delete(["/chef/object/" | [Id]], []),
     delete_ids(Ids).

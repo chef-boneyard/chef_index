@@ -1,3 +1,9 @@
+# Deprecated ... except for oc_reporting use #
+
+**This code has been consolidated into [oc_erchef](https://github.com/opscode/oc_erchef) as an app (look in the apps folder). New development should occur there.**
+
+**However, oc_reporting still uses this repository because it is short lived and still uses Erlang R16B03. If you are updating this repo with recent development from the apps folder in oc_erchef, please ensure that is compiles under the older Erlang version.**
+
 # Chef Index #
 
 This is the search/indexing layer for chef.

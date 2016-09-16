@@ -13,3 +13,4 @@ doc/*.html
 /.concrete
 test/*.out
 .rebar
+src/chef_lucene.erl

@@ -37,16 +37,14 @@
 -define(EXPECTED_DELETE_DOC, [<<"<delete><id>">>,<<"a1">>,<<"</id></delete>">>]).
 
 chef_index_test_() ->
-    Item = {[{<<"key1">>, <<"value1">>},
-             {<<"key2">>, <<"value2">>}]},
     {foreach,
      fun() ->
              chef_index_test_utils:start_stats_hero(),
              application:set_env(chef_index, rabbitmq_vhost, <<"testvhost">>),
-             meck:new([chef_index_queue, chef_index_expand, chef_index_batch], [passthrough])
+             meck:new([chef_index_queue, chef_index_expand], [passthrough])
      end,
      fun(_) ->
-             meck:unload([chef_index_queue, chef_index_expand, chef_index_batch])
+             meck:unload([chef_index_queue, chef_index_expand])
      end,
      [{"add calls chef_index_queue:set when search_queue_mode is rabbitmq",
        fun() ->
@@ -56,22 +54,6 @@ chef_index_test_() ->
                ?assert(meck:validate(chef_index_queue))
        end
       },
-      {"add calls chef_index_batch:add_item when search_queue_mode is batch",
-       fun() ->
-               application:set_env(chef_index, search_queue_mode, batch),
-               meck:expect(chef_index_batch, add_item, fun(?EXPECTED_DOC) -> ok end),
-               chef_index:add(role, <<"a1">>, <<"db1">>, Item, none),
-               ?assert(meck:validate(chef_index_batch))
-       end
-      },
-      {"add calls chef_index_expand:send_item when search_queue_mode is inline",
-       fun() ->
-               application:set_env(chef_index, search_queue_mode, inline),
-               meck:expect(chef_index_expand, send_item, fun(?EXPECTED_DOC) -> ok end),
-               chef_index:add(role, <<"a1">>, <<"db1">>, Item, none),
-               ?assert(meck:validate(chef_index_expand))
-       end
-      },
       {"delete calls chef_index_queue:delete when search_queue_mode is rabbitmq",
        fun() ->
                application:set_env(chef_index, search_queue_mode, rabbitmq),
@@ -79,22 +61,6 @@ chef_index_test_() ->
                chef_index:delete(role, <<"a1">>, <<"db1">>, none),
                ?assert(meck:validate(chef_index_queue))
        end
-      },
-      {"delete calls chef_index_expand:send_delete when search_queue_mode is inline",
-      fun() ->
-              application:set_env(chef_index, search_queue_mode, inline),
-              delete_assertion()
-      end
-      },
-      {"delete calls chef_index_expand:send_delete when search_queue_mode is batch",
-       fun() ->
-               application:set_env(chef_index, search_queue_mode, batch),
-               delete_assertion()
-       end}
+      }
      ]
     }.
-
-delete_assertion() ->
-    meck:expect(chef_index_expand, send_delete, fun(?EXPECTED_DELETE_DOC) -> ok end),
-    chef_index:delete(role, <<"a1">>, <<"db1">>, <<"abcd">>),
-    ?assert(meck:validate(chef_index_expand)).

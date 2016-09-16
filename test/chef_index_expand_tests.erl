@@ -64,7 +64,11 @@ flatten_lists_test() ->
     ?assertEqual(Expect, iolist_to_binary(Expanded)).
 
 example_test() ->
-    {ok, Bin} = chef_index_test_utils:read_file("sample_node.json"),
+    io:fwrite(filename:absname("sample_node.json"), []),
+    Len = length(code:priv_dir(chef_index)),
+    Dir = string:sub_string(code:priv_dir(chef_index), 1, Len - 4),
+    Path = Dir ++ "/test/sample_node.json",
+    {ok, Bin} = chef_index_test_utils:read_file(Path),
     Node = jiffy:decode(Bin),
     Expanded = chef_index_expand:flatten(solr, Node),
     file:write_file(chef_index_test_utils:filename("sample.out"), Expanded),

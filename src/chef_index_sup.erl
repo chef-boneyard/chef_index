@@ -73,10 +73,7 @@ child_spec() ->
             error_logger:info_msg("Connecting to Rabbit at ~p:~p ~p~n",
                                   [Host, Port, {VHost, ExchangeName}]),
 
-            [bunnyc_spec(VHost, Host, Port, User, Password, ExchangeName)];
-        _  -> %% TODO should we not start up batch if in inline mode?
-            [{chef_index_batch, {chef_index_batch, start_link, []},
-              permanent, 5000, worker, [chef_index_batch]}]
+            [bunnyc_spec(VHost, Host, Port, User, Password, ExchangeName)]
     end.
 
 bunnyc_spec(VHost, Host, Port, User, Password, ExchangeName) ->
