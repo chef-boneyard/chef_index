@@ -140,7 +140,7 @@ publish(VHost, Data, RoutingKey) ->
 
     %% Jiffy may return an iolist, but publish only takes binaries.
     Bin = erlang:iolist_to_binary(jiffy:encode(Data)),
-    Server = chef_index_sup:server_for_vhost(VHost),
+    Server = server_for_vhost(VHost),
     ok = bunnyc:publish(Server, RoutingKey, Bin).
 
 -spec routing_key(uuid_binary()) -> binary().
@@ -157,3 +157,9 @@ object_id_to_i(UUID) ->
 unix_time() ->
   {MS, S, _US} = os:timestamp(),
   (1000000 * MS) + S.
+
+%% Given a rabbitmq `VHost' binary, return the atom that identifies the registered bunnyc
+%% server for that vhost.
+server_for_vhost(VHost) ->
+    Bin = erlang:iolist_to_binary([<<"chef_index_queue">>, VHost]),
+    erlang:binary_to_atom(Bin, utf8).
